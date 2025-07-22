@@ -1,6 +1,12 @@
-﻿; ===== Rock-Perfect Gold Macro =====
+; ===== Rock-Perfect Gold Macro =====
 ; F1 = Start loop
 ; F2 = Stop and exit
+
+; Pixel coordinates and colors for reference
+rockX := 1242
+rockY := 862
+rockColor := 0xD2D0C0
+waterColor := 0x4AD8F1
 
 toggle := false
 
@@ -25,6 +31,33 @@ GoldLoop:
 if (!toggle)
     return
 
+; === VERIFY START POSITION ON ROCK ===
+PixelSearch, foundX, foundY, rockX-2, rockY-2, rockX+2, rockY+2, rockColor, 10, Fast RGB
+if (ErrorLevel != 0) {
+    ToolTip, ❌ Rock not found - attempting realign
+    Loop, 20 {
+        PixelSearch, foundX, foundY, rockX-2, rockY-2, rockX+2, rockY+2, rockColor, 10, Fast RGB
+        if (ErrorLevel = 0)
+            break
+        ; nudge left and right
+        if (A_Index & 1) {
+            Send {a down}
+            Sleep, 100
+            Send {a up}
+        } else {
+            Send {d down}
+            Sleep, 100
+            Send {d up}
+        }
+        Sleep, 150
+    }
+    ToolTip
+    ; if still not aligned abort this loop
+    PixelSearch, foundX, foundY, rockX-2, rockY-2, rockX+2, rockY+2, rockColor, 10, Fast RGB
+    if (ErrorLevel != 0)
+        return
+}
+
 ; === DIGGING ===
 Loop, 12 {
     Click down left
@@ -35,7 +68,7 @@ Loop, 12 {
 
 ; === WALK RIGHT UNTIL IN WATER ===
 Loop, 20 {
-    PixelSearch, foundX, foundY, 2050, 900, 2150, 1000, 0x4AD8F1, 40, Fast RGB
+    PixelSearch, foundX, foundY, 2050, 900, 2150, 1000, waterColor, 40, Fast RGB
     if (ErrorLevel = 0)
         break
     Send {d down}
@@ -45,7 +78,7 @@ Loop, 20 {
 }
 
 ; === RINSE IF IN WATER ===
-PixelSearch, foundX, foundY, 2050, 900, 2150, 1000, 0x4AD8F1, 40, Fast RGB
+PixelSearch, foundX, foundY, 2050, 900, 2150, 1000, waterColor, 40, Fast RGB
 if (ErrorLevel = 0) {
     Click
     Sleep, 100
@@ -57,6 +90,30 @@ if (ErrorLevel = 0) {
     Sleep, 1000
 }
 
+; === WALK LEFT BACK TO ROCK ===
+Loop, 20 {
+    PixelSearch, foundX, foundY, rockX-2, rockY-2, rockX+2, rockY+2, rockColor, 10, Fast RGB
+    if (ErrorLevel = 0)
+        break
+    Send {a down}
+    Sleep, 100
+    Send {a up}
+    Sleep, 100
+}
+
+; === FINAL ALIGNMENT CHECK ===
+PixelSearch, foundX, foundY, rockX-2, rockY-2, rockX+2, rockY+2, rockColor, 10, Fast RGB
+if (ErrorLevel = 0) {
+    ToolTip, ✅ Alignment Correct
+    Sleep, 500
+    ToolTip
+} else {
+    ToolTip, ⚠️ Unable to realign
+    Sleep, 500
+    ToolTip
+    return
+}
+
 ; === OPEN INVENTORY & SELL ===
 Send !+f
 Sleep, 300
@@ -64,29 +121,4 @@ Click, 1154, 1034
 Sleep, 300
 Send !+f
 Sleep, 300
-
-; === ALIGN BACK TO THE ROCK (X:1242, Y:862, Color: 0xD2D0C0) ===
-Loop, 20 {
-    PixelSearch, foundX, foundY, 1242, 862, 1242, 862, 0xD2D0C0, 10, Fast RGB
-    if (ErrorLevel = 0) {
-        ToolTip, ✅ Alignment Correct
-        Sleep, 500
-        ToolTip
-        break
-    }
-
-    ; Alternate nudging left/right
-    if (A_Index & 1) {
-        Send {a down}
-        Sleep, 100
-        Send {a up}
-    } else {
-        Send {d down}
-        Sleep, 100
-        Send {d up}
-    }
-
-    Sleep, 150
-}
-
 return
